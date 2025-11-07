@@ -1,9 +1,10 @@
 import { generateObject } from "ai";
 import z from "zod";
+import { openai } from "@ai-sdk/openai";
 
 export const extractSQLFromText = async (text: string): Promise<string> => {
   const { object } = await generateObject({
-    model: "openai/gpt-5-mini",
+    model: openai("gpt-4.1"),
     messages: [
       {
         role: "system",

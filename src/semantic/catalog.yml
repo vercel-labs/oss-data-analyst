@@ -23,6 +23,7 @@ entities:
     example_questions:
       - What is the average salary by department?
       - How many employees work in each company?
+      - Show me employee count and average salary for each company
       - Who are the highest paid employees?
       - What is the average tenure of employees?
       - Show me the distribution of employees by job title

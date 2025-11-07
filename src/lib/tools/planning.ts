@@ -253,6 +253,36 @@ export const SearchCatalog = tool({
   },
 });
 
+// Helper function to sanitize entity objects (remove Maps/Sets for serialization)
+function sanitizeEntity(entity: any): any {
+  return {
+    name: entity.name,
+    table: entity.table,
+    grain: entity.grain,
+    description: entity.description?.slice(0, 400),
+    dimensions: entity.dimensions?.map((d: any) => ({
+      ...d,
+      description: d.description?.slice(0, 200),
+    })) || [],
+    time_dimensions: entity.time_dimensions || [],
+    measures: entity.measures?.map((m: any) => ({
+      ...m,
+      description: m.description?.slice(0, 200),
+    })) || [],
+    metrics: entity.metrics?.map((m: any) => ({
+      ...m,
+      description: m.description?.slice(0, 200),
+    })) || [],
+    joins: entity.joins || [],
+    common_filters: entity.common_filters || [],
+    // Include alias information but as counts, not Maps
+    _aliasCount: entity._aliasIndex?.size || 0,
+    _dimensionCount: entity.dimensions?.length || 0,
+    _measureCount: entity.measures?.length || 0,
+    _metricCount: entity.metrics?.length || 0,
+  };
+}
+
 // --- Tool: LoadEntitiesBulk ---
 export const LoadEntitiesBulk = tool({
   description:
@@ -270,7 +300,8 @@ export const LoadEntitiesBulk = tool({
     for (const name of names) {
       try {
         const { entity } = await loadEntityYaml(name);
-        result[name] = entity;
+        // Sanitize entity to remove Maps/Sets for serialization
+        result[name] = sanitizeEntity(entity);
       } catch (err) {
         // If entity not found or error, include error info
         result[name] = {

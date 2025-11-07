@@ -16,9 +16,9 @@ const queryCache = new Map<
   }
 >();
 
-// Cache settings
-const CACHE_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
-const CACHE_MAX_SIZE = 100; // Maximum number of cached queries
+// Cache settings - OPTIMIZED for better performance
+const CACHE_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes (increased from 5min)
+const CACHE_MAX_SIZE = 500; // Maximum number of cached queries (increased from 100)
 
 // Helper to clean old cache entries
 function cleanExpiredCache() {

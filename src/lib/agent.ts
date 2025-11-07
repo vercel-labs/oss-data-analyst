@@ -50,6 +50,7 @@ import {
   SanityCheck,
   VisualizeData,
 } from "./tools/reporting";
+import { visualizationTools } from "./tools/visualization-tools";
 import { PLANNING_SPECIALIST_SYSTEM_PROMPT } from "./prompts/planning";
 import { BUILDING_SPECIALIST_SYSTEM_PROMPT } from "./prompts/building";
 import { EXECUTION_MANAGER_SYSTEM_PROMPT } from "./prompts/execution";
@@ -65,7 +66,7 @@ export type Phase = "planning" | "building" | "execution" | "reporting";
 export async function runAgent({
   messages,
   prompt,
-  model = "openai/gpt-5",
+  model = "gpt-4.1",
 }: {
   messages: UIMessage[];
   prompt?: string;
@@ -74,15 +75,12 @@ export async function runAgent({
   let phase: Phase = "planning";
   const possibleEntities = await ListEntities();
 
+  // Use gpt-4.1 for reliable multi-phase agentic workflow
+  const selectedModel = openai(model);
+
   const result = streamText({
-    model,
+    model: selectedModel,
     messages: convertToModelMessages(messages),
-    providerOptions: {
-      openai: {
-        reasoningSummary: "detailed",
-        reasoningEffort: "medium",
-      },
-    },
     tools: {
       ReadEntityYamlRaw,
       LoadEntitiesBulk,
@@ -101,8 +99,10 @@ export async function runAgent({
       ExecuteSQLWithRepair,
       SanityCheck,
       FormatResults,
+      VisualizeData,
       ExplainResults,
       FinalizeReport,
+      ...visualizationTools,
     },
     stopWhen: [
       (ctx) =>
@@ -151,13 +151,16 @@ export async function runAgent({
       }
 
       if (phase === "planning") {
+        // OPTIMIZATION: Reduce token size - send entity list as comma-separated string
+        // instead of full JSON, and only include 3 example queries instead of all
+        const entityList = possibleEntities.join(", ");
+        const limitedExamples = sqlEvalSet.slice(0, 3);
+
         return {
           system: [
             PLANNING_SPECIALIST_SYSTEM_PROMPT,
-            `<PossibleEntities>${JSON.stringify(
-              possibleEntities
-            )}</PossibleEntities>`,
-            `<VerifiedQueries>${JSON.stringify(sqlEvalSet)}</VerifiedQueries>`,
+            `<PossibleEntities>${entityList}</PossibleEntities>`,
+            `<VerifiedQueries>${JSON.stringify(limitedExamples)}</VerifiedQueries>`,
           ].join("\n"),
           activeTools: [
             "ReadEntityYamlRaw",
@@ -193,7 +196,7 @@ export async function runAgent({
         activeTools: [
           "SanityCheck",
           "FormatResults",
-          // "VisualizeData",
+          "VisualizeData",
           "ExplainResults",
           "FinalizeReport",
         ],

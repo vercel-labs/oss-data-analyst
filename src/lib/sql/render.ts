@@ -2,8 +2,9 @@
 
 import type { FinalizedPlan, Intent, JoinEdge as PlanJoinEdge } from '@/lib/planning/types';
 import type { EntityJson, MeasureRaw, MetricRaw } from '@/lib/semantic/types';
+import type { MacroContext } from './macros';
 import { computeJoinPath } from './joins';
-import { expandSqlExpression, MacroContext, qualifySimpleColumn } from './macros';
+import { expandSqlExpression, qualifySimpleColumn } from './macros';
 
 interface Registry extends Map<string, EntityJson> {}
 

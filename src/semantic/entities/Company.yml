@@ -28,7 +28,7 @@ dimensions:
   - name: employee_count
     sql: employee_count
     type: number
-    description: Number of employees
+    description: Static employee count field (for reference only). To get actual employee count, use People.count measure joined by company_id.
 
   - name: revenue
     sql: revenue

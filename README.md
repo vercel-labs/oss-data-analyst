@@ -14,6 +14,12 @@ oss-data-analyst is an intelligent AI agent that converts natural language quest
 - **Modern UI**: Built with Next.js, React, and TailwindCSS
 - **Extensible Tools**: Easy to add custom tools and capabilitiets
 
+## 📖 Documentation
+
+- **[Quick Start](#quick-start)** - Get running in 5 minutes
+- **[Connection Guide](./CONNECTION_GUIDE.md)** - Connect your database & use cases
+- **[Database Setup](#using-with-production-databases)** - Production database configuration
+
 ## Quick Start
 
 ### Prerequisites
@@ -155,6 +161,4 @@ The default setup uses SQLite for demonstration. To use with Snowflake or other 
 - Check API rate limits and credits
 
 **Build Errors**
-- Run `pnpm install` to update dependencies
-- Check TypeScript errors with `pnpm run type-check`
-- Clear `.next` folder and rebuild
+- Run `pnpm install`

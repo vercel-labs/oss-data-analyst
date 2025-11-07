@@ -6,6 +6,7 @@ export interface IntentLike {
   metrics?: string[];
   dimensions?: string[];
   timeRange?: { start: string; end: string; grain?: string };
+  chartType?: 'bar' | 'line' | 'pie' | 'scatter';
 }
 
 function looksTemporal(name: string): boolean {
@@ -84,10 +85,31 @@ export function buildVegaLite(
         scale: { paddingInner: 0.3 }
       };
 
+  // Determine chart type from intent or default based on data characteristics
+  const chartType = intent.chartType || (dim.temporal ? 'line' : 'bar');
+  
+  // Handle pie chart
+  if (chartType === 'pie') {
+    return {
+      $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+      data: { values: rows },
+      mark: { type: 'arc', outerRadius: 120 },
+      encoding: {
+        theta: { field: metric, type: 'quantitative' },
+        color: { field: dim.field, type: 'nominal' },
+        tooltip: [
+          { field: dim.field, type: 'nominal' },
+          { field: metric, type: 'quantitative', format: ',.0f' }
+        ]
+      },
+      view: { stroke: null }
+    };
+  }
+
   const spec = {
     $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
     data: { values: rows },
-    mark: dim.temporal ? 'line' : 'bar',
+    mark: chartType === 'line' ? 'line' : chartType === 'scatter' ? 'point' : 'bar',
     encoding: {
       x,
       y: { field: metric, type: 'quantitative' }

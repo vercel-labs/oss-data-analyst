@@ -1,9 +1,36 @@
 // lib/security/policy.ts
 
-export const allowedSchemas = (process.env.ALLOWED_SCHEMAS ?? "analytics,crm,main")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+/**
+ * Detect if we're using SQLite (default for development/demo)
+ * SQLite uses "main" as the default schema name
+ */
+function isUsingSQLite(): boolean {
+  // If SNOWFLAKE_ACCOUNT is not set, we're likely using SQLite
+  return !process.env.SNOWFLAKE_ACCOUNT;
+}
+
+/**
+ * Get allowed schemas based on database type
+ * - SQLite: Always includes "main" schema
+ * - Snowflake/Other: Uses ALLOWED_SCHEMAS env var or default
+ */
+export function getAllowedSchemas(): string[] {
+  const envSchemas = (process.env.ALLOWED_SCHEMAS ?? "analytics,crm,main")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  // If using SQLite, ensure "main" is always allowed
+  if (isUsingSQLite()) {
+    if (!envSchemas.includes("main")) {
+      envSchemas.push("main");
+    }
+  }
+
+  return envSchemas;
+}
+
+export const allowedSchemas = getAllowedSchemas();
 
 export function parseTableIdent(ident: string): {
   db?: string;
@@ -21,7 +48,7 @@ export function parseTableIdent(ident: string): {
 
 export function verifyAllowedTables(
   registry: Map<string, { table: string }>,
-  allowed: string[] = allowedSchemas
+  allowed: string[] = getAllowedSchemas()
 ) {
   const violations: string[] = [];
   for (const [entity, ent] of registry.entries()) {

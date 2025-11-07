@@ -6,6 +6,7 @@ description: Employee information including demographics and job details
 common_questions:
   - What is the average salary by department?
   - How many employees work in each company?
+  - Show me employee count and average salary for each company
   - Who are the highest paid employees?
 
 dimensions:

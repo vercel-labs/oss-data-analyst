@@ -6,6 +6,40 @@ import { toCSV } from "@/lib/reporting/csv";
 import { buildVegaLite } from "@/lib/reporting/viz";
 import type { ColumnMeta } from "@/lib/snowflake";
 
+// Helper function to sanitize data structures (remove Sets, Maps, etc.)
+function sanitizeForSerialization(data: any): any {
+  if (data === null || data === undefined) {
+    return data;
+  }
+  
+  // Handle Sets - convert to arrays
+  if (data instanceof Set) {
+    return Array.from(data);
+  }
+  
+  // Handle Maps - convert to objects
+  if (data instanceof Map) {
+    return Object.fromEntries(data);
+  }
+  
+  // Handle arrays
+  if (Array.isArray(data)) {
+    return data.map(sanitizeForSerialization);
+  }
+  
+  // Handle objects
+  if (typeof data === "object" && data.constructor === Object) {
+    const sanitized: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      sanitized[key] = sanitizeForSerialization(value);
+    }
+    return sanitized;
+  }
+  
+  // Primitive types are fine
+  return data;
+}
+
 const columnMetaSchema = z.object({
   name: z.string(),
   type: z.string(),
@@ -57,13 +91,15 @@ export const FormatResults = tool({
       );
     }
 
-    return { csvBase64, preview, truncated, totalRows };
+    const result = { csvBase64, preview, truncated, totalRows };
+    // Sanitize to ensure no Sets/Maps in nested data
+    return sanitizeForSerialization(result);
   },
 });
 
 export const VisualizeData = tool({
   description:
-    "Generate a minimal Vega-Lite v5 spec for the given intent and result set.",
+    "Generate a chart specification for the given data. Automatically detects chart type from user request or data characteristics.",
   inputSchema: z.object({
     intent: z.object({
       metrics: z.array(z.string()).optional(),
@@ -75,6 +111,7 @@ export const VisualizeData = tool({
           grain: z.string().optional(),
         })
         .optional(),
+      chartType: z.enum(['bar', 'line', 'pie', 'scatter']).optional(),
     }),
     rows: rowsSchema,
     columns: columnsSchema,
@@ -123,5 +160,8 @@ export const FinalizeReport = tool({
     narrative: z.string().min(1),
     confidence: z.number().min(0).max(1),
   }),
-  execute: async (payload) => payload,
+  execute: async (payload) => {
+    // Sanitize payload to ensure all Sets/Maps are converted to plain objects
+    return sanitizeForSerialization(payload);
+  },
 });
