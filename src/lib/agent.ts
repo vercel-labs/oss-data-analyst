@@ -18,37 +18,17 @@ import {
   SearchCatalog,
   SearchSchema,
 } from "./tools/planning";
-// Use SQLite building tools for demo/development
 import { BuildSQL, FinalizeBuild, ValidateSQL } from "./tools/building-sqlite";
-
-// For production Snowflake usage, use:
-// import {
-//   BuildSQL,
-//   FinalizeBuild,
-//   JoinPathFinder,
-//   ValidateSQL,
-// } from "./tools/building";
-
-// Use SQLite execution tools for demo/development
 import {
   EstimateCost,
   ExecuteSQL,
   ExecuteSQLWithRepair,
 } from "./tools/execute-sqlite";
-
-// For production Snowflake usage, use:
-// import {
-//   EstimateCost,
-//   ExecuteSQL,
-//   ExecuteSQLWithRepair,
-//   ExplainSnowflake,
-// } from "./tools/execute";
 import {
   ExplainResults,
   FinalizeReport,
   FormatResults,
   SanityCheck,
-  VisualizeData,
 } from "./tools/reporting";
 import { PLANNING_SPECIALIST_SYSTEM_PROMPT } from "./prompts/planning";
 import { BUILDING_SPECIALIST_SYSTEM_PROMPT } from "./prompts/building";
@@ -168,7 +148,6 @@ export async function runAgent({
             "SearchCatalog",
             "SearchSchema",
             "FinalizePlan",
-            "FinalizeBuild",
             "FinalizeNoData",
           ],
         };
@@ -193,7 +172,6 @@ export async function runAgent({
         activeTools: [
           "SanityCheck",
           "FormatResults",
-          // "VisualizeData",
           "ExplainResults",
           "FinalizeReport",
         ],

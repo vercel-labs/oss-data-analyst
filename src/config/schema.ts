@@ -17,26 +17,6 @@ export const configSchema = z
     // AI Gateway Configuration
     // AI_GATEWAY_API_KEY: z.string().min(1, "AI_GATEWAY_API_KEY is required"),
 
-    // Snowflake Configuration
-    SNOWFLAKE_ACCOUNT: z.string().min(1, "SNOWFLAKE_ACCOUNT is required"),
-    SNOWFLAKE_USERNAME: z.string().min(1, "SNOWFLAKE_USERNAME is required"),
-    SNOWFLAKE_PASSWORD: z.string().min(1, "SNOWFLAKE_PASSWORD is required"),
-    SNOWFLAKE_WAREHOUSE: z.string().min(1, "SNOWFLAKE_WAREHOUSE is required"),
-    SNOWFLAKE_DATABASE: z.string().optional(),
-    SNOWFLAKE_SCHEMA: z.string().optional(),
-    SNOWFLAKE_ROLE: z.string().optional(),
-    SNOWFLAKE_STATEMENT_TIMEOUT: z.string().transform(Number).default(120),
-    SNOWFLAKE_POOL_MAX: z.string().transform(Number).default(10),
-    SNOWFLAKE_APPLICATION: z
-      .string()
-      .default("oss-data-analyst-api")
-      .optional(),
-    SNOWFLAKE_CLIENT_SESSION_KEEP_ALIVE: z
-      .string()
-      .transform((v) => v === "true")
-      .default(true)
-      .optional(),
-
     // Runtime Flags
     STRICT_SQL_VALIDATION: z
       .string()

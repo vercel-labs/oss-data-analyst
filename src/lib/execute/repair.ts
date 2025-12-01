@@ -3,7 +3,7 @@
 import type { FinalizedPlan } from "@/lib/planning/types";
 import type { EntityJson, DimensionRaw } from "@/lib/semantic/types";
 import { computeJoinPath } from "@/lib/sql/joins";
-import { isColumnNotFound, isAmbiguousColumn, isTimeout } from "./errors";
+import { isColumnNotFound, isAmbiguousColumn, isTimeout, isQuoteSyntaxError } from "./errors";
 
 function normalize(s: string) {
   return s.replace(/["`]/g, "").trim().toLowerCase();
@@ -97,6 +97,20 @@ function dropOrderBy(sql: string): string {
   return sql.replace(/\border\s+by\b[\s\S]*?($|\nlimit\s+\d+)/i, "$1").trim();
 }
 
+function simpleQuoteFix(sql: string): string {
+  // Simple fallback repair: convert obvious string literals in double quotes to single quotes
+  // This is a backup to the normalization in validate.ts
+  // Pattern: "Text" where Text starts with uppercase and doesn't look like an identifier
+  return sql.replace(/"([A-Z][^"]*?)"/g, (match, content) => {
+    // If it looks like an identifier pattern, keep double quotes
+    if (/^[A-Z_][A-Z0-9_]*$/i.test(content)) {
+      return match;
+    }
+    // Otherwise convert to single quotes (escape any single quotes inside)
+    return "'" + content.replace(/'/g, "''") + "'";
+  });
+}
+
 export function buildRegistryFromPlan(
   plan: FinalizedPlan,
   entityLoader: (name: string) => Promise<EntityJson>
@@ -124,10 +138,22 @@ export async function attemptRepair(
   const cnf = isColumnNotFound(err);
   const amb = isAmbiguousColumn(err);
   const to = isTimeout(err);
+  const quoteSyntax = isQuoteSyntaxError(err);
 
   const registry = await buildRegistryFromPlan(plan, entityLoader);
   const base = plan.selectedEntities[0];
   const jp = computeJoinPath(base, plan.selectedEntities, registry);
+  
+  // Try to fix quote syntax errors as a fallback (normalization should handle this in validate.ts)
+  if (quoteSyntax && quoteSyntax.needsSingleQuotes) {
+    const fixed = simpleQuoteFix(sql);
+    if (fixed !== sql) {
+      return {
+        fixedSql: fixed,
+        reason: "Fixed quote syntax (fallback): converted string literals from double quotes to single quotes.",
+      };
+    }
+  }
   if (cnf && cnf.missingColumns.length > 0) {
     // Strategy: for each missing column, try to qualify or substitute best match
     let fixed = sql;

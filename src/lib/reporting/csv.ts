@@ -1,6 +1,6 @@
 // lib/reporting/csv.ts
 
-import type { ColumnMeta } from '@/lib/snowflake';
+import type { ColumnMeta } from '@/lib/tools/reporting';
 
 function csvEscape(value: any): string {
   if (value === null || value === undefined) return '';

@@ -1,6 +1,6 @@
 // lib/security/policy.ts
 
-export const allowedSchemas = (process.env.ALLOWED_SCHEMAS ?? "analytics,crm,main")
+export const allowedSchemas = (process.env.ALLOWED_SCHEMAS ?? "main")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
@@ -10,7 +10,7 @@ export function parseTableIdent(ident: string): {
   schema?: string;
   table?: string;
 } {
-  // Snowflake fully qualified: <db>.<schema>.<table>
+  // Fully qualified table name: <db>.<schema>.<table>
   const parts = ident.split(".");
   if (parts.length === 3)
     return { db: parts[0], schema: parts[1], table: parts[2] };

@@ -1,9 +1,10 @@
-// SQL rendering logic for converting plans to Snowflake SQL
+// SQL rendering logic for converting plans to SQL
 
 import type { FinalizedPlan, Intent, JoinEdge as PlanJoinEdge } from '@/lib/planning/types';
 import type { EntityJson, MeasureRaw, MetricRaw } from '@/lib/semantic/types';
 import { computeJoinPath } from './joins';
 import { expandSqlExpression, MacroContext, qualifySimpleColumn } from './macros';
+import { normalizeSQLiteQuotes } from './validate';
 
 interface Registry extends Map<string, EntityJson> {}
 
@@ -125,21 +126,21 @@ function buildMetricExpr(
     const pred = preds.length === 1 ? preds[0] : `(${preds.join(') AND (')})`;
 
     if (measure.type === 'count') {
-      // Snowflake-specific COUNT_IF
-      agg = `COUNT_IF(${pred})`;
+      // SQLite-compatible conditional count using SUM and CASE
+      agg = `SUM(CASE WHEN ${pred} THEN 1 ELSE 0 END)`;
     } else if (measure.type === 'count_distinct') {
-      // IFF(predicate, expr, NULL) inside DISTINCT
+      // SQLite-compatible conditional distinct count using CASE
       const sqlExpr = expandSqlExpression(measure.sql!, {
         ...ctx,
         currentEntity: hostEntity.name
       });
-      agg = `COUNT(DISTINCT IFF(${pred}, ${sqlExpr}, NULL))`;
+      agg = `COUNT(DISTINCT CASE WHEN ${pred} THEN ${sqlExpr} ELSE NULL END)`;
     } else {
       const sqlExpr = expandSqlExpression(measure.sql!, {
         ...ctx,
         currentEntity: hostEntity.name
       });
-      agg = `${measure.type.toUpperCase()}(IFF(${pred}, ${sqlExpr}, NULL))`;
+      agg = `${measure.type.toUpperCase()}(CASE WHEN ${pred} THEN ${sqlExpr} ELSE NULL END)`;
     }
   }
 
@@ -302,5 +303,8 @@ export function renderSQLFromPlan(plan: FinalizedPlan, registry: Registry): stri
   }
   parts.push(limitClause);
 
-  return parts.join('\n');
+  const sql = parts.join('\n');
+  
+  // Normalize SQLite quote syntax before returning
+  return normalizeSQLiteQuotes(sql, registry);
 }

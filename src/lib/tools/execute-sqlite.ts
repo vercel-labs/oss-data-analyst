@@ -266,18 +266,3 @@ export const ExecuteSQLWithRepair = tool({
   },
 });
 
-/**
- * Placeholder for ExplainSnowflake - not needed for SQLite but kept for compatibility
- */
-export const ExplainSnowflake = tool({
-  description: "SQLite does not support EXPLAIN USING JSON. Returns basic query plan.",
-  inputSchema: z.object({
-    sql: z.string().min(1),
-  }),
-  execute: async ({ sql }) => {
-    console.log("[ExplainSnowflake] SQLite query plan not implemented");
-    return {
-      planJson: { note: "SQLite does not provide detailed query plans" },
-    };
-  },
-});

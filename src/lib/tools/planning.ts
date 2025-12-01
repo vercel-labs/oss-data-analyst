@@ -105,7 +105,7 @@ export const AssessEntityCoverage = tool({
 
 // --- Tool: FinalizePlan (collector) ---
 export const FinalizePlan = tool({
-  description: "Finalize planning with structured plan payload for Building.",
+  description: "REQUIRED: Call this tool to complete planning and transition to Building phase. Pass the complete structured plan.",
   inputSchema: finalizePlanSchema,
   execute: async (payload) => {
     // Validate the payload

@@ -4,6 +4,104 @@ import type { FinalizedPlan } from '@/lib/planning/types';
 import type { EntityJson } from '@/lib/semantic/types';
 import { verifyAllowedTables } from '@/lib/security/policy';
 
+/**
+ * Normalize SQLite quote syntax:
+ * - Single quotes (') for string literals
+ * - Double quotes (") for identifiers (table/column names)
+ * 
+ * This function converts double-quoted strings to single quotes when they appear
+ * to be string literals rather than identifiers.
+ */
+export function normalizeSQLiteQuotes(sql: string, registry: Map<string, EntityJson>): string {
+  // Build a set of known identifiers from the registry
+  const knownIdentifiers = new Set<string>();
+  for (const [, ent] of registry) {
+    knownIdentifiers.add(ent.name);
+    knownIdentifiers.add(ent.table);
+    for (const d of ent.dimensions) {
+      knownIdentifiers.add(d.name);
+      if (d.aliases) {
+        d.aliases.forEach(a => knownIdentifiers.add(a));
+      }
+    }
+    for (const td of ent.time_dimensions) {
+      knownIdentifiers.add(td.name);
+    }
+    for (const m of ent.measures) {
+      knownIdentifiers.add(m.name);
+    }
+  }
+  
+  // Also add common SQL keywords and functions that might be quoted
+  const sqlKeywords = new Set([
+    'select', 'from', 'where', 'group', 'by', 'order', 'having', 'join',
+    'left', 'right', 'inner', 'outer', 'on', 'as', 'and', 'or', 'not',
+    'count', 'sum', 'avg', 'min', 'max', 'distinct', 'limit', 'offset'
+  ]);
+  
+  let result = '';
+  let i = 0;
+  
+  while (i < sql.length) {
+    const ch = sql[i];
+    
+    // Handle single-quoted strings (keep as-is)
+    if (ch === "'") {
+      result += ch;
+      i++;
+      // Find the closing quote
+      while (i < sql.length) {
+        result += sql[i];
+        if (sql[i] === "'" && sql[i - 1] !== '\\') {
+          i++;
+          break;
+        }
+        i++;
+      }
+      continue;
+    }
+    
+    // Handle double-quoted strings (analyze and potentially convert)
+    if (ch === '"') {
+      let token = '';
+      i++; // skip opening quote
+      
+      // Extract the token inside double quotes
+      while (i < sql.length && sql[i] !== '"') {
+        token += sql[i];
+        i++;
+      }
+      
+      i++; // skip closing quote
+      
+      // Decide if this is an identifier or a string literal
+      const isIdentifier = 
+        knownIdentifiers.has(token) ||
+        knownIdentifiers.has(token.toLowerCase()) ||
+        sqlKeywords.has(token.toLowerCase()) ||
+        // Match identifier patterns: snake_case, camelCase, or SQL standard
+        /^[a-z_][a-z0-9_]*$/i.test(token);
+      
+      if (isIdentifier) {
+        // Keep as identifier with double quotes
+        result += '"' + token + '"';
+      } else {
+        // Convert to string literal with single quotes
+        // Escape any single quotes in the token
+        const escapedToken = token.replace(/'/g, "''");
+        result += "'" + escapedToken + "'";
+      }
+      continue;
+    }
+    
+    // Regular character
+    result += ch;
+    i++;
+  }
+  
+  return result;
+}
+
 const DISALLOWED = [
   /\bDROP\b/i,
   /\bTRUNCATE\b/i,

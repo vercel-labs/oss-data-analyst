@@ -51,6 +51,7 @@ import {
   ToolOutput,
 } from "@/components/ai-elements/tool";
 import { Loader } from "@/components/ai-elements/loader";
+import { ResultsModule } from "@/components/ResultsModule";
 
 const models = [
   {
@@ -205,10 +206,57 @@ const ChatBotDemo = () => {
                       return null;
                   }
                 })}
-                {/* Display narrative from FinalizeReport as final result */}
+                {/* Display messages from ClarifyIntent, FinalizeNoData, and FinalizeReport */}
                 {message.role === "assistant" &&
                   (() => {
-                    // Find FinalizeReport by checking for the specific output structure
+                    // Find ClarifyIntent - when agent needs clarification
+                    const clarifyIntentPart = message.parts.find(
+                      (part) =>
+                        "output" in part &&
+                        part.output &&
+                        typeof part.output === "object" &&
+                        "question" in part.output
+                    );
+
+                    if (clarifyIntentPart && "output" in clarifyIntentPart) {
+                      const output = clarifyIntentPart.output as {
+                        question: string;
+                      };
+
+                      return (
+                        <Message from={message.role}>
+                          <MessageContent>
+                            <Response>{output.question}</Response>
+                          </MessageContent>
+                        </Message>
+                      );
+                    }
+
+                    // Find FinalizeNoData - when agent answers without querying data
+                    const finalizeNoDataPart = message.parts.find(
+                      (part) =>
+                        "output" in part &&
+                        part.output &&
+                        typeof part.output === "object" &&
+                        "message" in part.output &&
+                        !("narrative" in part.output)
+                    );
+
+                    if (finalizeNoDataPart && "output" in finalizeNoDataPart) {
+                      const output = finalizeNoDataPart.output as {
+                        message: string;
+                      };
+
+                      return (
+                        <Message from={message.role}>
+                          <MessageContent>
+                            <Response>{output.message}</Response>
+                          </MessageContent>
+                        </Message>
+                      );
+                    }
+
+                    // Find FinalizeReport - when agent returns data results
                     const finalizeReportPart = message.parts.find(
                       (part) =>
                         "output" in part &&
@@ -222,17 +270,37 @@ const ChatBotDemo = () => {
                     if (finalizeReportPart && "output" in finalizeReportPart) {
                       const output = finalizeReportPart.output as {
                         narrative: string;
+                        sql: string;
+                        preview: Array<Record<string, unknown>>;
+                        csvBase64?: string;
+                        confidence?: number;
                       };
 
-                      if (output.narrative) {
-                        return (
-                          <Message from={message.role}>
-                            <MessageContent>
-                              <Response>{output.narrative}</Response>
-                            </MessageContent>
-                          </Message>
-                        );
-                      }
+                      return (
+                        <>
+                          {/* Display narrative */}
+                          {output.narrative && (
+                            <Message from={message.role}>
+                              <MessageContent>
+                                <Response>{output.narrative}</Response>
+                              </MessageContent>
+                            </Message>
+                          )}
+
+                          {/* Display results table if preview data exists */}
+                          {output.preview && output.preview.length > 0 && (
+                            <ResultsModule
+                              data={{
+                                rows: output.preview,
+                                columns: Object.keys(
+                                  output.preview[0] || {}
+                                ).map((name) => ({ name, type: "TEXT" })),
+                                sql: output.sql,
+                              }}
+                            />
+                          )}
+                        </>
+                      );
                     }
                     return null;
                   })()}

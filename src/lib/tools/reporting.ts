@@ -3,8 +3,11 @@ import { tool } from "ai";
 import { z } from "zod";
 import { sanityCheck } from "@/lib/reporting/sanity";
 import { toCSV } from "@/lib/reporting/csv";
-import { buildVegaLite } from "@/lib/reporting/viz";
-import type { ColumnMeta } from "@/lib/snowflake";
+
+export interface ColumnMeta {
+  name: string;
+  type: string;
+}
 
 const columnMetaSchema = z.object({
   name: z.string(),
@@ -61,30 +64,6 @@ export const FormatResults = tool({
   },
 });
 
-export const VisualizeData = tool({
-  description:
-    "Generate a minimal Vega-Lite v5 spec for the given intent and result set.",
-  inputSchema: z.object({
-    intent: z.object({
-      metrics: z.array(z.string()).optional(),
-      dimensions: z.array(z.string()).optional(),
-      timeRange: z
-        .object({
-          start: z.string(),
-          end: z.string(),
-          grain: z.string().optional(),
-        })
-        .optional(),
-    }),
-    rows: rowsSchema,
-    columns: columnsSchema,
-  }),
-  execute: async ({ intent, rows, columns }) => {
-    const spec = buildVegaLite(intent, rows, columns as ColumnMeta[]);
-    return { vegaLite: spec };
-  },
-});
-
 export const ExplainResults = tool({
   description:
     "Record the business-facing narrative and a calibrated confidence score (0..1).",
@@ -111,7 +90,6 @@ export const FinalizeReport = tool({
     sql: z.string().min(1),
     csvBase64: z.string().min(1),
     preview: rowsSchema,
-    vegaLite: z.any(),
     narrative: z.string().min(1),
     confidence: z.number().min(0).max(1),
   }),
@@ -119,7 +97,6 @@ export const FinalizeReport = tool({
     sql: z.string().min(1),
     csvBase64: z.string().min(1),
     preview: rowsSchema,
-    vegaLite: z.any(),
     narrative: z.string().min(1),
     confidence: z.number().min(0).max(1),
   }),

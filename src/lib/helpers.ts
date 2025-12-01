@@ -55,7 +55,6 @@ const ResultObject = z.object({
   sql: z.string().min(1),
   csvBase64: z.string().min(1),
   preview: z.array(z.any()),
-  vegaLite: z.any(),
   narrative: z.string().min(1),
   confidence: z.number().min(0).max(1),
 });

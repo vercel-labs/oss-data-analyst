@@ -1,6 +1,6 @@
 // lib/reporting/sanity.ts
 
-import type { ColumnMeta } from "@/lib/snowflake";
+import type { ColumnMeta } from "@/lib/tools/reporting";
 
 export interface SanityReport {
   issues: string[];
